@@ -5,7 +5,7 @@ ansible_become=true
 openshift_deployment_type=origin
 openshift_release=3.10
 openshift_clock_enabled=true
-os_firewall_use_firewalld=false
+os_firewall_use_firewalld=true
 os_sdn_network_plugin_name='redhat/openshift-ovs-networkpolicy'
 
 openshift_master_api_port=443
