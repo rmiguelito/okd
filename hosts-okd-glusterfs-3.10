@@ -47,16 +47,16 @@ openshift_logging_es_pvc_size=5Gi
 openshift_logging_es_pvc_storage_class_name="glusterfs-registry-block"       
 
 ##PERSISTENT VOLUMES
-openshift_hosted_registry_storage_kind=glusterfs
 openshift_storage_glusterfs_version=gluster4u0_centos7
 openshift_storage_glusterfs_block_version=latest
 openshift_storage_glusterfs_heketi_version=7
 openshift_storage_glusterfs_block_host_vol_size=10
 
+##GLUSTERFS APPS CONFIGURATION
 openshift_storage_glusterfs_is_native=false
 openshift_storage_glusterfs_block_deploy=false
 openshift_storage_glusterfs_storageclass=true
-openshift_storage_glusterfs_storageclass_default=true
+openshift_storage_glusterfs_storageclass_default=false
 openshift_storage_glusterfs_heketi_is_native=true
 openshift_storage_glusterfs_heketi_executor=ssh
 openshift_storage_glusterfs_heketi_ssh_port=22
@@ -64,6 +64,8 @@ openshift_storage_glusterfs_heketi_ssh_user=root
 openshift_storage_glusterfs_heketi_ssh_sudo=false
 openshift_storage_glusterfs_heketi_ssh_keyfile="/root/.ssh/id_rsa"
 
+##GLUSTERFS INFRA CONFIGURATION
+openshift_hosted_registry_storage_kind=glusterfs
 openshift_storage_glusterfs_is_native=false
 openshift_storage_glusterfs_registry_block_deploy=true
 openshift_storage_glusterfs_registry_block_storageclass=true
