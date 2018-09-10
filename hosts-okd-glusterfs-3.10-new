@@ -1,0 +1,127 @@
+[OSEv3:vars]
+ansible_ssh_user=root
+ansible_become=true
+
+openshift_deployment_type=origin
+openshift_release="3.10"
+openshift_clock_enabled=true
+os_firewall_use_firewalld=true
+os_sdn_network_plugin_name='redhat/openshift-ovs-networkpolicy'
+
+
+#TESTE SWAP REGISTRY
+#openshift_enable_unsupported_configurations=True
+
+openshift_master_api_port=443
+openshift_master_console_port=443
+openshift_template_service_broker_namespaces=['openshift']
+openshift_docker_options="--selinux-enabled --insecure-registry=172.30.0.0/16 --log-opt max-size=1M --log-opt max-file=3"
+openshift_disable_check="disk_availability,memory_availability,package_version,docker_image_availability"
+
+openshift_master_audit_config={"enabled": true, "auditFilePath": "/var/lib/origin/openshift-audit.log", "maximumFileRetentionDays": 14, "maximumFileSizeMegabytes": 500, "maximumRetainedFiles": 5}
+#openshift_node_kubelet_args={'pods-per-core': ['10'], 'max-pods': ['110'], 'image-gc-high-threshold': ['90'], 'image-gc-low-threshold': ['80'], 'kube-reserved': ['cpu=250m,memory=150M'], 'system-reserved': ['cpu=250m,memory=150M']}
+
+openshift_master_cluster_method=native
+openshift_master_cluster_hostname=ocp.example.com
+openshift_master_cluster_public_hostname=ocp.example.com
+openshift_master_default_subdomain=apps.example.com
+
+
+openshift_master_identity_providers=[{'name': 'htpasswd_auth', 'login': 'true', 'challenge': 'true', 'kind': 'HTPasswdPasswordIdentityProvider'}]
+openshift_master_htpasswd_users={'admin': '$apr1$xySBCH36$Lzw6m81rKP/hIqJYbXUht0', 'developer': '$apr1$xySBCH36$Lzw6m81rKP/hIqJYbXUht0'}
+
+#### teste erro no provider dynamic
+#dynamic_volumes_check=False
+####
+
+#openshift_metrics_install_metrics=true
+#openshift_metrics_hawkular_nodeselector={"node-role.kubernetes.io/infra": "true"} 
+#openshift_metrics_cassandra_nodeselector={"node-role.kubernetes.io/infra": "true"} 
+#openshift_metrics_heapster_nodeselector={"node-role.kubernetes.io/infra": "true"} 
+#openshift_metrics_storage_kind=dynamic
+#openshift_metrics_storage_volume_size=1Gi
+#openshift_metrics_cassandra_pvc_storage_class_name="glusterfs-registry-block" 
+##
+#openshift_logging_install_logging=true
+#openshift_logging_kibana_nodeselector={"node-role.kubernetes.io/infra": "true"} 
+#openshift_logging_curator_nodeselector={"node-role.kubernetes.io/infra": "true"} 
+#openshift_logging_es_nodeselector={"node-role.kubernetes.io/infra": "true"} 
+#openshift_logging_storage_kind=dynamic
+#openshift_logging_es_pvc_size=1Gi                        
+#openshift_logging_es_pvc_storage_class_name="glusterfs-registry-block"       
+
+
+#Teste SWAP REGISTRY
+#openshift_hosted_registry_storage_kind=nfs
+#openshift_hosted_registry_storage_access_modes=['ReadWriteMany']
+#openshift_hosted_registry_nfs_options='*(rw,root_squash)
+#openshift_hosted_registry_storage_host=192.168.209.12
+#openshift_hosted_registry_storage_nfs_directory=/exports
+#openshift_hosted_registry_storage_volume_name=registry
+#openshift_hosted_registry_storage_volume_size=5Gi
+
+
+openshift_hosted_registry_storage_kind=glusterfs 
+openshift_hosted_registry_storage_volume_size=3Gi
+openshift_hosted_registry_selector='node-role.kubernetes.io/infra=true'
+openshift_storage_glusterfs_registry_namespace=infra-storage
+openshift_hosted_registry_storage_glusterfs_swap=true
+openshift_hosted_registry_storage_glusterfs_swapcopy=true
+
+
+openshift_storage_glusterfs_registry_block_deploy=true
+openshift_storage_glusterfs_registry_block_storageclass=true
+openshift_storage_glusterfs_registry_block_storageclass_default=false
+openshift_storage_glusterfs_registry_block_host_vol_size=15
+openshift_storage_glusterfs_registry_is_native=false
+openshift_storage_glusterfs_registry_heketi_is_native=true
+openshift_storage_glusterfs_registry_heketi_executor=ssh
+openshift_storage_glusterfs_registry_heketi_ssh_port=22
+openshift_storage_glusterfs_registry_heketi_ssh_user=root
+openshift_storage_glusterfs_registry_heketi_ssh_sudo=false
+openshift_storage_glusterfs_registry_heketi_ssh_keyfile="/root/.ssh/id_rsa"
+
+
+#openshift_storage_glusterfs_namespace=app-storage
+#openshift_storage_glusterfs_storageclass=true
+#openshift_storage_glusterfs_storageclass_default=true
+#openshift_storage_glusterfs_block_deploy=false
+#openshift_storage_glusterfs_block_storageclass=false
+#openshift_storage_glusterfs_block_storageclass_default=false
+#openshift_storage_glusterfs_is_native=false
+#openshift_storage_glusterfs_heketi_is_native=true
+#openshift_storage_glusterfs_heketi_executor=ssh
+#openshift_storage_glusterfs_heketi_ssh_port=22
+#openshift_storage_glusterfs_heketi_ssh_user=root
+#openshift_storage_glusterfs_heketi_ssh_sudo=false
+#openshift_storage_glusterfs_heketi_ssh_keyfile="/root/.ssh/id_rsa"
+
+
+[OSEv3:children]
+masters
+etcd
+nodes
+glusterfs_registry
+#glusterfs
+
+[masters]
+master.example.com
+
+[etcd]
+master.example.com
+
+[nodes]
+master.example.com openshift_node_group_name='node-config-master' openshift_node_labels="{'logging':'true','cluster': 'cef', 'region': 'master', 'zone': 'vmware'}"
+infra.example.com openshift_node_group_name='node-config-infra' openshift_node_labels="{'logging':'true','cluster': 'cef', 'env':'infra', 'region': 'infra', 'zone': 'vmware'}"
+node1.example.com openshift_node_group_name='node-config-compute' openshift_node_labels="{'logging':'true','cluster': 'cef', 'env':'app', 'region': 'primary', 'zone': 'vmware'}"
+node2.example.com openshift_node_group_name='node-config-compute' openshift_node_labels="{'logging':'true','cluster': 'cef', 'env':'app', 'region': 'primary', 'zone': 'vmware'}"
+
+[glusterfs_registry]
+gluster4.example.com glusterfs_ip=192.168.209.203 glusterfs_devices='[ "/dev/sdb", "/dev/sdc" ]'
+gluster5.example.com glusterfs_ip=192.168.209.204 glusterfs_devices='[ "/dev/sdb", "/dev/sdc" ]'
+gluster6.example.com glusterfs_ip=192.168.209.205 glusterfs_devices='[ "/dev/sdb", "/dev/sdc" ]'
+
+#[glusterfs]
+#gluster1.example.com glusterfs_ip=192.168.209.200 glusterfs_devices='[ "/dev/sdb" ]'
+#gluster2.example.com glusterfs_ip=192.168.209.201 glusterfs_devices='[ "/dev/sdb" ]'
+#gluster3.example.com glusterfs_ip=192.168.209.202 glusterfs_devices='[ "/dev/sdb" ]'
