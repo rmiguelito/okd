@@ -1,0 +1,133 @@
+#- name: unsubscribe --al
+#  command: subscription-manager unsubscribe --all
+
+#- name: clean all
+#  command: yum clean all
+
+#- name: Attach poll ID
+#  command: subscription-manager attach --pool=8a82f0015d09c6b9015d09f10fbf0005
+
+#- name: Desabilita repos
+#  command: "subscription-manager repos --disable=*"
+
+#- name: Habilita repositorio rpm server
+#  command: subscription-manager repos --enable="rhel-7-server-rpms" --enable="rhel-7-server-extras-rpms" --enable="rhel-7-server-ose-3.6-rpms" --enable="rhel-7-fast-datapath-rpms"
+
+- name: "Instalando Pacotes Basicos"
+  yum:
+    name: "{{ item }}"
+    state: latest
+  with_items:
+    - wget 
+    - git 
+    - net-tools 
+    - bind-utils 
+    - iptables-services 
+    - bridge-utils 
+    - bash-completion 
+    - kexec-tools 
+    - sos
+    - psacct
+
+#- name: "Instalando atomic-openshift-utils "
+#  yum:
+#    name: atomic-openshift-utils
+#    state: latest
+#
+#- name: "Instalando atomic-openshift-excluder"
+#  yum:
+#    name: atomic-openshift-excluder
+#    state: latest
+#
+#- name: "Instalando atomic-openshift-docker-excluder"
+#  yum:
+#    name: atomic-openshift-docker-excluder
+#    state: latest
+
+#- name: "Rodando atomic-openshift-excluder unexclude"
+#  command: "atomic-openshift-excluder unexclude"
+
+- name: "Instalando Docker"
+  yum:
+    name: docker
+    state: present
+
+#- name: "Copiando docker-storage-setup docker"
+#  copy:
+#   src: "/etc/sysconfig/docker-storage-setup"
+#   dest: /etc/sysconfig/docker-storage-setup
+
+
+#- name: "Rodando docker-storage-setup"
+#  command: docker-storage-setup
+
+- name: "Editando docker start script options"
+  lineinfile:
+    path: /etc/sysconfig/docker
+    regexp: "^OPTIONS"
+    line: "OPTIONS='--insecure-registry=172.30.0.0/16 --selinux-enabled --log-opt max-size=1M --log-opt max-file=3'"
+
+- name: Enable Selinux Enforcing
+  selinux:
+    policy: targeted
+    state: enforcing
+  tags: [selinux]
+
+- name: Enable and Started FirewallD
+  systemd:
+    name: firewalld
+    state: started
+    enabled: yes 
+  tags: [firewalld]
+ 
+- name: install epel
+  yum:
+    name: https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm
+    state: installed
+  tags: [epel,packages]
+
+- name: "Disable the EPEL repository globally so that it is not accidentally used during later steps of the installation"
+  shell: sed -i -e "s/^enabled=1/enabled=0/" /etc/yum.repos.d/epel.repo
+  tags: disable-epel-global
+
+#- name: install pip
+#  yum:
+#    name: python-pip
+#    enablerepo: epel
+#    state: installed
+#  tags: packages
+
+- name: pyOpenSSL
+  yum:
+    name: pyOpenSSL
+    enablerepo: epel
+    state: installed
+  tags: packages
+
+#- name: Download roles Origin
+#  local_action: command git clone https://github.com/openshift/openshift-ansible -b release-3.9 /etc/openshift-ansible
+  #local_action:
+  #   module: git
+  #      repo: https://github.com/openshift/openshift-ansible
+  #      dest: /tmp/openshift-ansible
+  #      version: 3.9
+  tags: roles
+
+- name: "Subindo docker..."
+  service:
+    name: docker
+    state: started
+    enabled: yes
+  tags: packages
+
+- name: "reboot"
+  shell: sleep 10 && /sbin/shutdown -r now
+  async: 300
+  poll: 0
+  become: true
+  tags: reboot
+
+- name: wait for {{ inventory_hostname }}
+  local_action: wait_for host={{ inventory_hostname }} port=22 delay=30 timeout=600 state=started
+  tags: reboot
+
