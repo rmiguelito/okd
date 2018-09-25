@@ -30,6 +30,39 @@ openshift_master_default_subdomain=all.example.com
 openshift_master_identity_providers=[{'name': 'htpasswd_auth', 'login': 'true', 'challenge': 'true', 'kind': 'HTPasswdPasswordIdentityProvider'}]
 openshift_master_htpasswd_users={'admin': '$apr1$xySBCH36$Lzw6m81rKP/hIqJYbXUht0', 'developer': '$apr1$xySBCH36$Lzw6m81rKP/hIqJYbXUht0'}
 
+openshift_hosted_registry_storage_kind=glusterfs
+openshift_hosted_registry_storage_volume_size=3Gi
+openshift_hosted_registry_selector='node-role.kubernetes.io/infra=true'
+openshift_storage_glusterfs_registry_namespace=infra-storage
+
+
+openshift_storage_glusterfs_registry_block_deploy=true
+openshift_storage_glusterfs_registry_block_storageclass=true
+openshift_storage_glusterfs_registry_block_storageclass_default=false
+openshift_storage_glusterfs_registry_block_host_vol_size=15
+openshift_storage_glusterfs_registry_is_native=false
+openshift_storage_glusterfs_registry_heketi_is_native=true
+openshift_storage_glusterfs_registry_heketi_executor=ssh
+openshift_storage_glusterfs_registry_heketi_ssh_port=22
+openshift_storage_glusterfs_registry_heketi_ssh_user=root
+openshift_storage_glusterfs_registry_heketi_ssh_sudo=false
+openshift_storage_glusterfs_registry_heketi_ssh_keyfile="/root/.ssh/id_rsa"
+
+openshift_metrics_install_metrics=true
+openshift_metrics_hawkular_nodeselector={"node-role.kubernetes.io/infra": "true"}
+openshift_metrics_cassandra_nodeselector={"node-role.kubernetes.io/infra": "true"}
+openshift_metrics_heapster_nodeselector={"node-role.kubernetes.io/infra": "true"}
+openshift_metrics_storage_kind=dynamic
+openshift_metrics_storage_volume_size=13Gi
+openshift_metrics_cassandra_pvc_storage_class_name="glusterfs-registry-block"
+
+openshift_metrics_cassandra_image="docker.io/openshift/origin-metrics-cassandra:v3.10.0-rc.0"
+openshift_metrics_hawkular_metrics_image="docker.io/openshift/origin-metrics-hawkular-metrics:v3.10.0-rc.0"
+openshift_metrics_schema_installer_image="docker.io/alv91/origin-metrics-schema-installer:v3.10.0"
+openshift_metrics_heapster_image="docker.io/openshift/origin-metrics-heapster:v3.10.0-rc.0"
+dynamic_volumes_check=False
+
+
 [OSEv3:children]
 masters
 etcd
