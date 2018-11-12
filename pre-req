@@ -13,7 +13,7 @@
 #- name: Habilita repositorio rpm server
 #  command: subscription-manager repos --enable="rhel-7-server-rpms" --enable="rhel-7-server-extras-rpms" --enable="rhel-7-server-ose-3.6-rpms" --enable="rhel-7-fast-datapath-rpms"
 
-#- name: Configure repository epel CEF
+#- name: Configure repository epel 
 #  template:
 #    src: /etc/ansible/rhel7-epel.repo
 #    dest: /etc/yum.repos.d/rhel7-epel.repo
