@@ -1,0 +1,216 @@
+#- name: unsubscribe --al
+#  command: subscription-manager unsubscribe --all
+
+#- name: clean all
+#  command: yum clean all
+
+#- name: Attach poll ID
+#  command: subscription-manager attach --pool=8a82f0015d09c6b9015d09f10fbf0005
+
+#- name: Desabilita repos
+#  command: "subscription-manager repos --disable=*"
+
+#- name: Habilita repositorio rpm server
+#  command: subscription-manager repos --enable="rhel-7-server-rpms" --enable="rhel-7-server-extras-rpms" --enable="rhel-7-server-ose-3.6-rpms" --enable="rhel-7-fast-datapath-rpms"
+
+#- name: Configure repository epel CEF
+#  template:
+#    src: /etc/ansible/rhel7-epel.repo
+#    dest: /etc/yum.repos.d/rhel7-epel.repo
+#  tags: repository
+
+- name: Configure repository Origin 
+  template:
+    src: /etc/ansible/CentOS-OpenShift-Origin.repo
+    dest: /etc/yum.repos.d/CentOS-OpenShift-Origin.repo
+  tags: repository
+
+- name: upgrade all packages
+  command: yum upgrade -y
+#     name: '*'
+#     state: installed
+  tags: upgrade
+
+- name: "Disable the EPEL repository globally so that it is not accidentally used during later steps of the installation"
+  lineinfile:
+    path: /etc/yum.repos.d/rhel7-epel.repo
+    regexp: "^enabled=1"
+    line: "enabled=0"
+  tags: disable-epel-global
+
+- name: "Instalando Pacotes Basicos"
+  yum:
+    name: "{{ item }}"
+    state: installed
+  with_items:
+     - wget
+     - git
+     - net-tools
+     - bind-utils
+     - yum-utils
+     - iptables-services
+     - bridge-utils
+     - bash-completion
+     - kexec-tools
+     - sos
+     - psacct
+  tags: basic-packages
+
+#- name: "Instalando atomic-openshift-utils "
+#  yum:
+#    name: atomic-openshift-utils
+#    state: installed
+
+- name: "Instalando atomic-openshift-excluder"
+  yum:
+    name: origin-excluder.noarch
+    state: installed
+
+- name: "Instalando atomic-openshift-docker-excluder"
+  yum:
+    name: origin-docker-excluder.noarch
+    state: installed
+
+- name: "be sure docker 1.13.1 is available on repository"
+  command: yum info -q docker-1.13.1
+  register: result
+  tags: version-docker
+
+- name: "Instalando Docker"
+  yum:
+    name: docker-1.13.1
+    state: installed
+  when: result is succeeded
+  tags: install-docker
+
+- name: "Copiando docker-storage-setup docker"
+  copy:
+   src: "/etc/ansible/docker-storage-setup"
+   dest: /etc/sysconfig/docker-storage-setup
+  tags: [docker]
+
+
+- name: "Rodando docker-storage-setup"
+  command: docker-storage-setup
+  tags: [docker]
+
+- name: "Editando docker start script options"
+  lineinfile:
+    path: /etc/sysconfig/docker
+    regexp: "^OPTIONS"
+    line: "OPTIONS='--insecure-registry=172.30.0.0/16 --selinux-enabled --log-opt max-size=100M --log-opt max-file=3'"
+  tags: [docker]
+
+- name: Enable Selinux Enforcing
+  selinux:
+    policy: targeted
+    state: enforcing
+  tags: [selinux]
+
+- name: Enable and Started FirewallD
+  systemd:
+    name: firewalld
+    state: started
+    enabled: yes
+  tags: [firewalld]
+
+- name: Enable and Started NetworkManager
+  systemd:
+    name: NetworkManager
+    state: started
+    enabled: yes
+  tags: [firewalld]
+
+- name: Disable Puppet agent
+  systemd:
+    name: puppet
+    state: stopped
+    enabled: no
+  tags: [puppet]
+
+- name: pyOpenSSL
+  yum:
+    name: pyOpenSSL
+    enablerepo: epel-el7l 
+    state: installed
+  tags: packages
+
+#- name: install ansible with pip
+#  command: pip install -i http://binario.caixa:8081/repository/pypi-repo/simple/ --extra-index-url http://binario.caixa:8081/repository/pypi-repo/simple/  ansible --trusted-host binario.caixa -v --disable-pip-version-check
+
+#- name: Install git local
+#  local_action:
+#    module: yum
+#    name: git
+#    state: installed
+#  tags: git
+
+#- name: Configure proxy https git
+#  git_config:
+#    name: https.proxy
+#    value: http://proxyprd.caixa:80
+#    scope: global
+#  tags: roles
+
+#- name: Configure proxy http git
+#  git_config:
+#    name: http.proxy
+#    value: http://proxyprd.caixa:80
+#    scope: global
+#  tags: roles
+
+#- name: Local download roles Origin
+#  local_action:
+#    module: git
+#    repo: https://github.com/openshift/openshift-ansible
+#    dest: /etc/ansible/openshift-ansible
+#    version: release-3.9
+#  tags: roles
+
+- name: "Subindo docker..."
+  systemd:
+    name: docker
+    state: started
+    enabled: yes
+
+#FIX ZABBIX-AGENT
+- name: "Rules firewalld zabbix-agent"
+  firewalld:
+    port: 10050-10051/tcp
+    permanent: true
+    immediate: true
+    state: enabled
+  tags: zabbix-agent
+
+- name: "Reinstall zabbix-agent"
+  shell: yum reinstall -y zabbix-agent
+  tags: zabbix-agent
+
+- name: "copy selinux zabbix-agent"
+  copy:
+    src: /etc/ansible/zabbix-fix
+    dest: /usr/share/selinux/devel
+  tags: zabbix-agent
+
+- name: "fix selinux context zabbix-agent"
+  shell: semodule -i /usr/share/selinux/devel/zabbix-fix/zabbixfix.pp
+  tags: zabbix-agent
+
+- name: "reload systemd and restart zabbix-agent"
+  systemd:
+    state: restarted
+    enabled: yes
+    daemon_reload: yes
+    name: zabbix-agent
+  tags: zabbix-agent
+
+- name: "reboot"
+  shell: sleep 10 && /sbin/shutdown -r now
+  async: 300
+  poll: 0
+  become: true
+  tags: reboot
+
+- name: wait for {{ inventory_hostname }}
+  local_action: wait_for host={{ inventory_hostname }} port=22 delay=30 timeout=600 state=started
+  tags: reboot
