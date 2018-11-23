@@ -1,0 +1,130 @@
+[OSEv3:vars]
+ansible_become=true
+
+openshift_deployment_type=origin
+openshift_release="3.10"
+openshift_clock_enabled=true
+os_firewall_use_firewalld=true
+os_sdn_network_plugin_name='redhat/openshift-ovs-networkpolicy'
+openshift_master_overwrite_named_certificates=true
+
+openshift_master_api_port=443
+openshift_master_console_port=443
+
+openshift_template_service_broker_namespaces=['openshift']
+
+openshift_master_audit_config={"enabled": true, "auditFilePath": "/var/lib/origin/openshift-audit.log", "maximumFileRetentionDays": 30, "maximumFileSizeMegabytes": 100, "maximumRetainedFiles": 5}
+#openshift_node_kubelet_args={'pods-per-core': ['10'], 'max-pods': ['250'], 'image-gc-high-threshold': ['90'], 'image-gc-low-threshold': ['80'], 'kube-reserved': ['cpu=500m,memory=1024M'], 'system-reserved': ['cpu=500m,memory=1024M']}
+openshift_docker_options="--selinux-enabled --insecure-registry=172.30.0.0/16 --log-opt max-size=100M --log-opt max-file=3"
+
+
+openshift_master_cluster_method=native
+openshift_master_cluster_hostname=ocpinterno.example.com
+openshift_master_cluster_public_hostname=ocp.example.com
+openshift_master_named_certificates=[{"certfile": "/etc/ansible/ocp.example.com.crt", "keyfile": "/etc/ansible/ocp.example.com.key", "names": ["ocp.example.com"], "cafile": "/etc/ansible/ca.example.crt"}]
+
+openshift_master_default_subdomain=apps.example.com
+
+openshift_disable_check="disk_availability,memory_availability,package_version,docker_image_availability,docker_storage"
+
+
+#PRIMEIRO FACA DEPLOY SOMENTE DO REGISTRY BLOCK
+#https://redhatstorage.redhat.com/2018/03/28/container-native-storage-3-9/
+
+### Registry dynamic Settings
+#openshift_hosted_registry_storage_kind=glusterfs
+#openshift_hosted_registry_storage_volume_size=380Gi
+#openshift_hosted_registry_selector='node-role.kubernetes.io/infra=true'
+#openshift_storage_glusterfs_registry_namespace=infra-storage
+#
+#openshift_storage_glusterfs_registry_block_deploy=true
+#openshift_storage_glusterfs_registry_block_storageclass=true
+#openshift_storage_glusterfs_registry_block_storageclass_default=false
+#openshift_storage_glusterfs_registry_block_host_vol_size=250
+#openshift_storage_glusterfs_registry_is_native=false
+#openshift_storage_glusterfs_registry_heketi_is_native=true
+#openshift_storage_glusterfs_registry_heketi_executor=ssh
+#openshift_storage_glusterfs_registry_heketi_ssh_port=22
+#openshift_storage_glusterfs_registry_heketi_ssh_user=root
+#openshift_storage_glusterfs_registry_heketi_ssh_sudo=false
+#openshift_storage_glusterfs_registry_heketi_ssh_keyfile="/etc/ansible/sshkey/id_rsa"
+#
+#
+#####DEPOIS QUE O CLUSTER ESTIVER INSTALADO E CONFIGURADO EFETUE O DEPLOY DO METRICS, LOGGING e STORAGE APPs
+#### Descomente as linhas abaixo e os hosts do inventário
+#
+#### Metrics dynamic Settings
+#openshift_metrics_install_metrics=true
+#openshift_metrics_hawkular_nodeselector={"node-role.kubernetes.io/infra": "true"} 
+#openshift_metrics_cassandra_nodeselector={"node-role.kubernetes.io/infra": "true"} 
+#openshift_metrics_heapster_nodeselector={"node-role.kubernetes.io/infra": "true"} 
+#openshift_metrics_storage_kind=dynamic
+#openshift_metrics_storage_volume_size=100Gi
+#openshift_metrics_cassandra_pvc_storage_class_name="glusterfs-registry-block" 
+#openshift_metrics_start_cluster=true
+#openshift_metrics_duration=30
+#openshift_metrics_cassandra_image="docker.io/openshift/origin-metrics-cassandra:v3.10.0-rc.0"
+#openshift_metrics_hawkular_metrics_image="docker.io/openshift/origin-metrics-hawkular-metrics:v3.10.0-rc.0"
+#openshift_metrics_schema_installer_image="docker.io/alv91/origin-metrics-schema-installer:v3.10.0"
+#openshift_metrics_heapster_image="docker.io/openshift/origin-metrics-heapster:v3.10.0-rc.0"
+#dynamic_volumes_check=False
+##
+##
+##### Logging dynamic Settings
+#openshift_logging_install_logging=true
+#openshift_logging_install_eventrouter=true
+#openshift_logging_kibana_nodeselector={"node-role.kubernetes.io/infra": "true"} 
+#openshift_logging_curator_nodeselector={"node-role.kubernetes.io/infra": "true"} 
+#openshift_logging_es_nodeselector={"node-role.kubernetes.io/infra": "true"} 
+#openshift_logging_storage_kind=dynamic
+#openshift_logging_es_pvc_size=200Gi 
+#openshift_logging_es_pvc_storage_class_name="glusterfs-registry-block"       
+#openshift_logging_eventrouter_replicas=1
+#openshift_logging_curator_default_days=30
+#openshift_logging_curator_run_timezone="America/Sao_Paulo"
+
+### App-storage dynamic Settings
+openshift_storage_glusterfs_namespace=app-storage
+openshift_storage_glusterfs_storageclass=true
+openshift_storage_glusterfs_storageclass_default=true
+openshift_storage_glusterfs_block_deploy=false
+openshift_storage_glusterfs_block_storageclass=false
+openshift_storage_glusterfs_block_storageclass_default=false
+openshift_storage_glusterfs_is_native=false
+openshift_storage_glusterfs_heketi_is_native=true
+openshift_storage_glusterfs_heketi_executor=ssh
+openshift_storage_glusterfs_heketi_ssh_port=22
+openshift_storage_glusterfs_heketi_ssh_user=root
+openshift_storage_glusterfs_heketi_ssh_sudo=false
+openshift_storage_glusterfs_heketi_ssh_keyfile="/etc/ansible/sshkey/id_rsa"
+
+
+[OSEv3:children]
+masters
+etcd
+nodes
+glusterfs_registry
+glusterfs
+
+
+[masters]
+master.example.com
+
+[etcd]
+master.example.com
+
+[nodes]
+master.example.com openshift_node_group_name='node-config-master' openshift_node_labels="{'logging':'true','cluster': 'cef', 'region': 'master', 'zone': 'vmware'}"
+infra.example.com openshift_node_group_name='node-config-infra' openshift_node_labels="{'logging':'true','cluster': 'cef', 'env':'infra', 'region': 'infra', 'zone': 'vmware'}"
+node1.example.com openshift_node_group_name='node-config-compute' openshift_node_labels="{'logging':'true','cluster': 'cef', 'env':'egressip', 'region': 'primary', 'zone': 'vmware'}"
+node2.example.com openshift_node_group_name='node-config-compute' openshift_node_labels="{'logging':'true','cluster': 'cef', 'env':'app', 'region': 'primary', 'zone': 'vmware'}"
+
+[glusterfs_registry]
+gluster4.example.com glusterfs_ip=192.168.209.203 glusterfs_devices='[ "/dev/sdb", "/dev/sdc" ]'
+gluster5.example.com glusterfs_ip=192.168.209.204 glusterfs_devices='[ "/dev/sdb", "/dev/sdc" ]'
+gluster6.example.com glusterfs_ip=192.168.209.205 glusterfs_devices='[ "/dev/sdb", "/dev/sdc" ]'
+
+[glusterfs]
+gluster1.example.com glusterfs_ip=192.168.209.200 glusterfs_devices='[ "/dev/sdb" ]'
+gluster2.example.com glusterfs_ip=192.168.209.201 glusterfs_devices='[ "/dev/sdb" ]'
+gluster3.example.com glusterfs_ip=192.168.209.202 glusterfs_devices='[ "/dev/sdb" ]'
